@@ -1,5 +1,6 @@
 'use strict';
 
+import { profile } from '../lib/profile.uc';
 import { C_RULE, W, SEP_H, RULE_PAD } from 'lvgl.theme';
 import { box_new, header_new } from 'lvgl.widget';
 import { body_new, cell_set } from 'lvgl.layout';
@@ -17,7 +18,7 @@ let gauges = {};
 let state;
 
 function gauge_at(grid, col, row, opts) {
-	return cell_set(gauge_new(grid, { ...opts,
+	return cell_set(gauge_new(grid, { ...profile.gauge, ...opts,
 					  side: col ? 'right' : 'left' }),
 			col, row);
 }

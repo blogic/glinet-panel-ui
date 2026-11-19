@@ -1,5 +1,6 @@
 'use strict';
 
+import { profile } from './lib/profile.uc';
 import * as lv from 'lv';
 import * as ubus from 'ubus';
 import * as uloop from 'uloop';
@@ -37,7 +38,8 @@ const BACKGROUNDS = [
 function background_load() {
 	let which = settings.background;
 
-	if (!which || which > length(BACKGROUNDS))
+	/* The bundled backgrounds are landscape images. */
+	if (!profile.background || !which || which > length(BACKGROUNDS))
 		return null;
 
 	let path = sprintf('%s/%s.png', BG_DIR, BACKGROUNDS[which - 1]);

@@ -1,5 +1,6 @@
 'use strict';
 
+import { profile } from '../lib/profile.uc';
 import * as lv from 'lv';
 import { FONT_REG_26 } from 'lvgl.assets';
 import { C_TXT, C_SERIES, C_SERIES_ALT, C_RULE, W, SEP_H,
@@ -16,7 +17,7 @@ const BARS_W	= W - 2 * PAD;
    pixels so a quiet link looks alive rather than broken. Changing it changes
    the data mapping and not only the geometry, so the chart is given this
    height rather than taking one from the layout. */
-const BARS_H	= 68;
+const BARS_H	= profile.traffic_height;
 
 const DOWN	= '↓';
 const UP	= '↑';

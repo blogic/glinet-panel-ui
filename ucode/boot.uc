@@ -1,10 +1,12 @@
 'use strict';
 
+import { profile } from './lib/profile.uc';
 import * as lv from 'lv';
 import * as uloop from 'uloop';
 import { cos } from 'math';
 import { IMAGE_LOGO } from './lib/assets.uc';
 import { W, H } from 'lvgl.theme';
+import { FONT_SEMI_21, FONT_REG_15 } from 'lvgl.assets';
 import { centre } from 'lvgl.layout';
 
 /* White, not the panel's black: the splash stands in for firmware that has not
@@ -87,10 +89,24 @@ function build() {
 	screen.scrollbar(lv.SCROLLBAR_OFF);
 	screen.scrollable(false);
 
-	let logo = lv.image(screen);
+	if (!profile.boot.logo) {
+		let title = lv.label(screen);
+		let model = lv.label(screen);
 
-	logo.src(IMAGE_LOGO);
-	logo.set({ x: centre(W, logo.width()), y: centre(H, logo.height()) });
+		title.text(profile.boot.title);
+		title.style({ text_color: 0x173249, text_font: FONT_SEMI_21,
+			      text_align: lv.TEXT_ALIGN_CENTER });
+		title.set({ x: 0, y: centre(H, 60), w: W });
+		model.text(profile.boot.subtitle);
+		model.style({ text_color: 0x173249, text_font: FONT_REG_15,
+			      text_align: lv.TEXT_ALIGN_CENTER });
+		model.set({ x: 0, y: centre(H, 60) + 34, w: W });
+	} else {
+		let logo = lv.image(screen);
+
+		logo.src(IMAGE_LOGO);
+		logo.set({ x: centre(W, logo.width()), y: centre(H, logo.height()) });
+	}
 
 	for (let i = 0; i < DOT_COUNT; i++) {
 		let dot = lv.obj(screen);
