@@ -3,13 +3,13 @@
 import * as lv from 'lv';
 import * as uloop from 'uloop';
 import { FONT_LIGHT_27 } from 'lvgl.assets';
-import { C_TXT, C_RULE, C_SERIES, W, TRACK_SPACE } from 'lvgl.theme';
+import { C_TXT, C_RULE, C_SERIES, W, LIST_H, TRACK_SPACE } from 'lvgl.theme';
 import { card_new, text_new, text_set, box_new,
 	 outline_new } from 'lvgl.widget';
 import { flow_new } from 'lvgl.layout';
 
 const CARD_Y	= 0;
-const CARD_H	= 214;
+const CARD_H	= LIST_H - 14;
 
 /* The box the readout sits in, not a line height: FONT_LIGHT_27 stands 21. */
 const READ_H	= 34;

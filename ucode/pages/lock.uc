@@ -1,5 +1,6 @@
 'use strict';
 
+import { profile } from '../lib/profile.uc';
 import * as lv from 'lv';
 import { C_TXT, C_TXT_DIM, C_SKY, W, H, TRACK_SPACE } from 'lvgl.theme';
 import { WX_SKY } from '../lib/theme.uc';
@@ -7,26 +8,27 @@ import { text_new, text_set, icon_new } from 'lvgl.widget';
 import { sky_image, degrees_unit } from '../lib/weather.uc';
 import { rate_fmt } from 'lvgl.rate';
 import { centre, chain_at } from 'lvgl.layout';
-import { FONT_REG_15, FONT_THIN_112, FONT_REG_20, FONT_REG_26,
+import { FONT_REG_15, FONT_REG_20, FONT_REG_26,
 	 FONT_LIGHT_45 } from 'lvgl.assets';
 import { IMAGE_WX_CLOUD_LG } from '../lib/assets.uc';
 
-/* A digit only face has no ascenders, so the 112 px clock stands 85 tall and
-   none of these is 1.2 times its size. */
+const layout = profile.lock;
 const DATE_H	= lv.font_line_height(FONT_REG_20);
-const CLOCK_H	= lv.font_line_height(FONT_THIN_112);
+const CLOCK_FONT = layout.font;
+const CLOCK_H	= lv.font_line_height(CLOCK_FONT);
 const MER_H	= lv.font_line_height(FONT_REG_15);
 const RATE_H	= lv.font_line_height(FONT_REG_20);
 
-const DATE_GAP	= 32;
-const RATE_GAP	= 34;
+const DATE_GAP	= layout.date_gap;
+const RATE_GAP	= layout.rate_gap;
 
 const BLOCK_H	= DATE_H + DATE_GAP + CLOCK_H + RATE_GAP + RATE_H;
 const DATE_Y	= int((H - BLOCK_H) / 2);
 const CLOCK_Y	= DATE_Y + DATE_H + DATE_GAP;
 const RATE_Y	= CLOCK_Y + CLOCK_H + RATE_GAP;
+const WEATHER_Y = CLOCK_Y + CLOCK_H + (layout.weather_gap ?? 0);
 
-const MER_Y	= CLOCK_Y + CLOCK_H + int((RATE_GAP - MER_H) / 2);
+const MER_Y	= layout.weather_below_clock ? CLOCK_Y - MER_H : CLOCK_Y + CLOCK_H + int((RATE_GAP - MER_H) / 2);
 
 const WX_PAD	= 14;
 const WX_GAP	= 10;	/* between the readings and the sky */
@@ -36,12 +38,12 @@ const WX_TEMP_H	= lv.font_line_height(FONT_REG_26);
 const WX_STACK	= 2;	/* between the condition and the temperature */
 
 const WX_SKY_X	= W - WX_PAD - WX_SKY;
-const WX_COL_X	= WX_SKY_X - WX_GAP - WX_COL_W;
+const WX_COL_X	= layout.weather_inset ?? WX_SKY_X - WX_GAP - WX_COL_W;
 
 const WX_BLOCK_H = WX_COND_H + WX_STACK + WX_TEMP_H;
-const WX_COND_Y	= CLOCK_Y + int((CLOCK_H - WX_BLOCK_H) / 2);
+const WX_COND_Y	= layout.weather_below_clock ? WEATHER_Y : CLOCK_Y + int((CLOCK_H - WX_BLOCK_H) / 2);
 const WX_TEMP_Y	= WX_COND_Y + WX_COND_H + WX_STACK;
-const WX_SKY_Y	= CLOCK_Y + int((CLOCK_H - WX_SKY) / 2);
+const WX_SKY_Y	= layout.weather_below_clock ? WEATHER_Y + layout.weather_icon_offset : CLOCK_Y + int((CLOCK_H - WX_SKY) / 2);
 
 const SMALL_H	= lv.font_line_height(FONT_LIGHT_45);
 const SMALL_GAP	= 8;	/* between the digits and the weather */
@@ -86,7 +88,7 @@ function clock_text() {
 }
 
 function clock_place() {
-	if (wx_shown) {
+	if (wx_shown && !layout.weather_below_clock) {
 		let small = lv.text_width(FONT_LIGHT_45, clock_text(),
 					  TRACK_SPACE);
 
@@ -96,7 +98,7 @@ function clock_place() {
 		return;
 	}
 
-	let digits = lv.text_width(FONT_THIN_112, clock_text(), TRACK_SPACE);
+	let digits = lv.text_width(CLOCK_FONT, clock_text(), TRACK_SPACE);
 
 	clock_big.obj.set({ x: int((W - digits) / 2), y: CLOCK_Y });
 }
@@ -107,13 +109,15 @@ function layout_set(weather) {
 
 	wx_shown = weather;
 
-	clock_big.obj.hidden(weather);
-	clock_small.obj.hidden(!weather);
+	let compact_clock = weather && !layout.weather_below_clock;
+
+	clock_big.obj.hidden(compact_clock);
+	clock_small.obj.hidden(!compact_clock);
 	wx_cond.obj.hidden(!weather);
 	wx_temp.obj.hidden(!weather);
 	wx_sky.hidden(!weather);
 
-	meridiem.obj.set(weather ? { x: 0, y: SMALL_MER_Y, w: SMALL_W }
+	meridiem.obj.set(compact_clock ? { x: 0, y: SMALL_MER_Y, w: SMALL_W }
 				 : { x: 0, y: MER_Y, w: W });
 
 	clock_place();
@@ -149,7 +153,7 @@ function page_build(parent, ctx) {
 	date.obj.set({ x: 0, y: DATE_Y, w: W });
 	date.obj.style({ text_align: lv.TEXT_ALIGN_CENTER });
 
-	clock_big = text_new(parent, FONT_THIN_112, C_TXT, '');
+	clock_big = text_new(parent, CLOCK_FONT, C_TXT, '');
 	clock_big.obj.style({ text_letter_space: TRACK_SPACE });
 
 	clock_small = text_new(parent, FONT_LIGHT_45, C_TXT, '');
@@ -159,6 +163,8 @@ function page_build(parent, ctx) {
 	wx_cond = text_new(parent, FONT_REG_15, C_TXT_DIM, '');
 	wx_cond.obj.set({ x: WX_COL_X, y: WX_COND_Y, w: WX_COL_W });
 	wx_cond.obj.style({ text_align: lv.TEXT_ALIGN_CENTER });
+	if (layout.weather_below_clock)
+		wx_cond.obj.long_mode(lv.LABEL_LONG_DOTS);
 	wx_cond.obj.hidden(true);
 
 	wx_temp = text_new(parent, FONT_REG_26, C_TXT, '');
@@ -174,6 +180,14 @@ function page_build(parent, ctx) {
 	meridiem.obj.set({ x: 0, y: MER_Y, w: W });
 	meridiem.obj.style({ text_align: lv.TEXT_ALIGN_CENTER });
 	meridiem.obj.hidden(clock_24h);
+
+	if (layout.rate_row_gap != null) {
+		down_val = rate_cell(parent, 0, W, lv.TEXT_ALIGN_CENTER, '');
+		up_val = rate_cell(parent, 0, W, lv.TEXT_ALIGN_CENTER, '');
+		up_val.obj.set({ y: RATE_Y + RATE_H + layout.rate_row_gap });
+
+		return;
+	}
 
 	rate_cell(parent, RATE_DOT_X, RATE_DOT_W, lv.TEXT_ALIGN_CENTER, '·');
 
@@ -193,8 +207,14 @@ function page_build(parent, ctx) {
 function page_update(source) {
 	let now = clock_text();
 	let moved = clock_big.last != now;
+	let date_text = state.date;
+	if (layout.short_date) {
+		let calendar = localtime(time());
 
-	text_set(date, state.date);
+		date_text = sprintf('%d/%02d', calendar.mday, calendar.mon);
+	}
+
+	text_set(date, date_text);
 	text_set(clock_big, now);
 	text_set(clock_small, now);
 
@@ -208,6 +228,13 @@ function page_update(source) {
 
 	let down = rate_fmt(state.rx[-1] ?? 0);
 	let up = rate_fmt(state.tx[-1] ?? 0);
+
+	if (layout.rate_row_gap != null) {
+		text_set(down_val, sprintf('↓ %s %s', down.value, down.unit));
+		text_set(up_val, sprintf('↑ %s %s', up.value, up.unit));
+
+		return;
+	}
 
 	text_set(down_val, down.value);
 	text_set(down_unit, down.unit);

@@ -1,5 +1,6 @@
 'use strict';
 
+import { profile } from '../lib/profile.uc';
 import * as lv from 'lv';
 import { C_TXT, C_TXT_DIM, C_OK, C_DOWN, W } from 'lvgl.theme';
 import { label_new, icon_new, header_new } from 'lvgl.widget';
@@ -14,13 +15,13 @@ const GAP_X	= 6;
 const GAP_Y	= 7;
 const LABEL_GAP	= 2;
 
-const LARGE_MAX	= 8;
+const LARGE_MAX	= profile.ports.large_limit;
 const LARGE = {
-	per_row: 4, jack: IMAGE_JACK_LG, cage: IMAGE_CAGE_LG,
+	per_row: profile.ports.large_columns, jack: IMAGE_JACK_LG, cage: IMAGE_CAGE_LG,
 	icon_h: 46, name: FONT_REG_15, speed: FONT_REG_13
 };
 const SMALL = {
-	per_row: 5, jack: IMAGE_JACK_SM, cage: IMAGE_CAGE_SM,
+	per_row: profile.ports.small_columns, jack: IMAGE_JACK_SM, cage: IMAGE_CAGE_SM,
 	icon_h: 23, name: FONT_SEMI_10, speed: FONT_REG_11
 };
 

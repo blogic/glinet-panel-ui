@@ -1,10 +1,11 @@
 'use strict';
 
+import { profile } from '../lib/profile.uc';
 import * as lv from 'lv';
 import { FONT_REG_15, FONT_REG_20, FONT_SEMI_21, FONT_LIGHT_45,
 	 IMAGE_INFO } from 'lvgl.assets';
 import { IMAGE_WX_CLOUD_LG, IMAGE_WX_CLOUD_SM } from '../lib/assets.uc';
-import { C_TXT, C_TXT_DIM, C_RULE, C_ACTION, C_SKY, W, SEP_H, HEAD_X,
+import { C_TXT, C_TXT_DIM, C_RULE, C_ACTION, C_SKY, W, SEP_H, HEAD_X, HEAD_FONT,
 	 RULE_PAD } from 'lvgl.theme';
 import { WX_TEMP_X, WX_TEMP_Y, WX_DEG_GAP, WX_DEG_DY, WX_TEXT_X, WX_COND_Y,
 	 WX_FEELS_Y, WX_SKY, WX_SKY_X, WX_SKY_Y, WX_RULE_Y, WX_DAYS, WX_COL_W,
@@ -85,7 +86,7 @@ function credit_show() {
 
 function info_build(parent) {
 	let hit = lv.obj(parent);
-	let x = HEAD_X + lv.text_width(FONT_SEMI_21, TITLE) + WX_INFO_GAP;
+	let x = HEAD_X + lv.text_width(HEAD_FONT, TITLE) + WX_INFO_GAP;
 
 	hit.set({ x: x - WX_INFO_GAP, y: 0, w: WX_INFO + 2 * WX_INFO_GAP,
 		  h: WX_INFO_Y + WX_INFO + WX_INFO_GAP });
@@ -207,6 +208,10 @@ function page_build(parent, ctx) {
 
 	cond = text_new(parent, FONT_REG_20, C_TXT, '');
 	cond.obj.set({ x: WX_TEXT_X, y: WX_COND_Y });
+	if (profile.weather.text_width != null) {
+		cond.obj.set({ w: profile.weather.text_width });
+		cond.obj.long_mode(lv.LABEL_LONG_DOTS);
+	}
 
 	feels = text_new(parent, FONT_REG_15, C_TXT_DIM, '');
 	feels.obj.set({ x: WX_TEXT_X, y: WX_FEELS_Y });
