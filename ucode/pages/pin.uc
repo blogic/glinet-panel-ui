@@ -9,6 +9,8 @@ import { PIN_LEN, PIN_PAD, PIN_TOP, PIN_BOTTOM, PIN_DOT, PIN_DOT_GAP,
 import { label_new, text_new, text_set, icon_new } from 'lvgl.widget';
 import { grid_new, cell_set, cells_at, span, centre } from 'lvgl.layout';
 import { FONT_REG_20, FONT_REG_13, IMAGE_BACKSPACE } from 'lvgl.assets';
+import { guard_new, guard_fail, guard_ok, guard_wait,
+	 guard_text } from '../lib/pin_guard.uc';
 
 const PROMPT_GAP = 9;
 const PAD_GAP	= 10;
@@ -29,11 +31,38 @@ const SHAKE_MS	= 43;
 
 const PROMPT	= 'Enter PIN';
 const REFUSED	= 'Incorrect PIN';
+const COUNTDOWN_MS = 1000;
 
 let expected, unlock, activity, card_opa;
 let prompt, dots = [];
 let entered = '';
 let shake_step, shake_timer;
+let guard = guard_new();
+let countdown;
+let clock_now = function() { return clock(true)[0]; };
+
+function prompt_set(text, color) {
+	text_set(prompt, text);
+	prompt.obj.style({ text_color: color });
+}
+
+/* Shows what the guard says. Runs once a second while the keypad is locked,
+   so the prompt counts down and returns by itself. */
+function guard_show() {
+	let wait = guard_wait(guard, clock_now());
+
+	if (wait) {
+		prompt_set(guard_text(wait), C_ALERT);
+		countdown.set(COUNTDOWN_MS);
+
+		return;
+	}
+
+	countdown.cancel();
+
+	if (prompt.last != PROMPT && prompt.last != REFUSED)
+		prompt_set(PROMPT, C_TXT);
+}
 
 function dot_style(dot, state) {
 	if (state == 'filled') {
@@ -70,8 +99,9 @@ function shake_step_run() {
 }
 
 function refuse() {
-	text_set(prompt, REFUSED);
-	prompt.obj.style({ text_color: C_ALERT });
+	guard_fail(guard, clock_now());
+	prompt_set(REFUSED, C_ALERT);
+	guard_show();
 	dots_refresh('error');
 
 	shake_step = 0;
@@ -79,10 +109,11 @@ function refuse() {
 }
 
 function digit_add(digit) {
-	if (prompt.last != PROMPT) {
-		text_set(prompt, PROMPT);
-		prompt.obj.style({ text_color: C_TXT });
-	}
+	if (guard_wait(guard, clock_now()))
+		return;
+
+	if (prompt.last != PROMPT)
+		prompt_set(PROMPT, C_TXT);
 
 	if (length(entered) >= PIN_LEN)
 		return;
@@ -95,6 +126,7 @@ function digit_add(digit) {
 
 	if (entered == expected) {
 		entered = '';
+		guard_ok(guard);
 		unlock();
 
 		return;
@@ -149,6 +181,9 @@ function key_new(pad, col, row, digit, fn) {
 }
 
 function page_build(parent, ctx) {
+	if (ctx.now)
+		clock_now = ctx.now;
+
 	expected = ctx.pin;
 	unlock = ctx.unlock;
 	activity = ctx.activity;
@@ -192,17 +227,29 @@ function page_build(parent, ctx) {
 	});
 
 	shake_timer = uloop.timer(-1, shake_step_run);
+	countdown = uloop.timer(-1, guard_show);
 }
 
 function page_enter() {
 	entered = '';
-	text_set(prompt, PROMPT);
-	prompt.obj.style({ text_color: C_TXT });
+	prompt_set(PROMPT, C_TXT);
 	dots_refresh();
+	guard_show();
+}
+
+function page_leave() {
+	countdown.cancel();
 }
 
 return {
 	needs: [],
 	build: page_build,
-	enter: page_enter
+	enter: page_enter,
+	leave: page_leave,
+	/* For test/pin.uc: the keys are touch, and the prompt is a widget. */
+	digit: digit_add,
+	refresh: guard_show,
+	status: function() {
+		return { prompt: prompt.last, entered: length(entered) };
+	}
 };
