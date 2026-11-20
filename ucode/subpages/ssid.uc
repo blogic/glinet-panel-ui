@@ -4,9 +4,8 @@ import * as lv from 'lv';
 import { LIST_H_SUB } from 'lvgl.theme';
 import { list_new, text_set } from 'lvgl.widget';
 import { rows_new } from 'lvgl.component.rows';
-import { ssid_enable } from '../lib/wireless.uc';
+import { ssid_enable, networks_visible } from '../lib/wireless.uc';
 import { FONT_TNUM_12, FONT_REG_13, IMAGE_EYE,
-import { networks_visible } from '../lib/wireless.uc';
 	 IMAGE_EYE_OFF } from 'lvgl.assets';
 
 const DOTS = '••••••••';
