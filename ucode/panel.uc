@@ -108,7 +108,8 @@ if (settings.pin && !PIN)
 sampler_awake(true);
 ui_build(PAGES, LOCK, PIN, settings.pin, background_load(), settings.scroll,
 	 settings.clock_24h,
-	 { points: CHART_POINTS, card_opa: settings.card_opa });
+	 { points: CHART_POINTS, card_opa: settings.card_opa,
+	   public: settings.public });
 
 /* Draw and commit before the applet goes: until this frame is on the plane the
    applet's buffer is, and the kernel disables the CRTC to reclaim one in use. */

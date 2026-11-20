@@ -6,6 +6,7 @@ import { list_new, text_set } from 'lvgl.widget';
 import { rows_new } from 'lvgl.component.rows';
 import { ssid_enable } from '../lib/wireless.uc';
 import { FONT_TNUM_12, FONT_REG_13, IMAGE_EYE,
+import { networks_visible } from '../lib/wireless.uc';
 	 IMAGE_EYE_OFF } from 'lvgl.assets';
 
 const DOTS = '••••••••';
@@ -18,12 +19,12 @@ const ROW_ENABLED	= 0;
 const ROW_QR		= 1;
 const ROW_PASSWORD	= 2;
 
-let state, activity, open, back;
+let state, activity, open, back, visible;
 let list, password;
 let name, revealed;
 
 function net_of() {
-	for (let entry in state.networks)
+	for (let entry in networks_visible(state.networks, visible))
 		if (entry.ssid == name)
 			return entry;
 
@@ -126,6 +127,7 @@ function page_update(source) {
 
 function page_build(parent, ctx) {
 	state = ctx.state;
+	visible = ctx.visible;
 	activity = ctx.activity;
 	open = ctx.open;
 	back = ctx.back;

@@ -7,20 +7,21 @@ import { label_new, header_new, HEAD_H } from 'lvgl.widget';
 import { flow_new, cells_at, span, centre } from 'lvgl.layout';
 import { qrplate_new, CAP_GAP } from 'lvgl.component.qrplate';
 import { qr_payload } from '../lib/qr.uc';
+import { networks_visible } from '../lib/wireless.uc';
 import { FONT_REG_11, FONT_REG_13 } from 'lvgl.assets';
 
 const PAGE_H	= H - HEAD_H;
 
 const COL_X	= W - 7 - DOT_SIZE;
 
-let state, activity;
+let state, activity, visible;
 let parent_obj, pager, dots;
 let shown;
 
 function codes_of() {
 	let out = [];
 
-	for (let net in state.networks)
+	for (let net in networks_visible(state.networks, visible))
 		if (net.up)
 			push(out, net);
 
@@ -143,6 +144,7 @@ function page_update(source) {
 function page_build(parent, ctx) {
 	state = ctx.state;
 	activity = ctx.activity;
+	visible = ctx.visible;
 	parent_obj = parent;
 
 	header_new(parent, 'QR codes', false, null);

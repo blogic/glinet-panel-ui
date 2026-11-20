@@ -5,8 +5,9 @@ import { list_new, text_set } from 'lvgl.widget';
 import { key_of } from 'lvgl.layout';
 import { rows_new } from 'lvgl.component.rows';
 import { ssid_enable } from '../lib/wireless.uc';
+import { networks_visible } from '../lib/wireless.uc';
 
-let state, activity;
+let state, activity, visible;
 let list;
 
 function detail_of(net) {
@@ -43,7 +44,7 @@ function row_of(net) {
 }
 
 function page_update(source) {
-	let nets = state.networks;
+	let nets = networks_visible(state.networks, visible);
 
 	if (list.set(key_of(nets, key_net), nets, row_of))
 		return;
@@ -55,6 +56,7 @@ function page_update(source) {
 function page_build(parent, ctx) {
 	state = ctx.state;
 	activity = ctx.activity;
+	visible = ctx.visible;
 
 	let scroll = list_new(parent, { title: 'Wi-Fi toggles', activity });
 

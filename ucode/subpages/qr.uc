@@ -7,13 +7,14 @@ import { flow_new } from 'lvgl.layout';
 import { qrplate_new, CAP_GAP } from 'lvgl.component.qrplate';
 import { qr_payload } from '../lib/qr.uc';
 import { FONT_REG_11 } from 'lvgl.assets';
+import { networks_visible } from '../lib/wireless.uc';
 
-let state;
+let state, visible;
 let plate, caption;
 let name;
 
 function net_of() {
-	for (let entry in state.networks)
+	for (let entry in networks_visible(state.networks, visible))
 		if (entry.ssid == name)
 			return entry;
 
@@ -38,6 +39,7 @@ function page_update(source) {
 
 function page_build(parent, ctx) {
 	state = ctx.state;
+	visible = ctx.visible;
 	name = ctx.params?.ssid;
 
 	let column = flow_new(parent, { dir: 'column', main: 'centre',
