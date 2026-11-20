@@ -9,6 +9,7 @@ import { sources_new, DEFAULTS as SYSTEM_DEFAULTS } from 'lvgl.sources';
 import { ui_build, ui_seed, view_status, view_goto, view_open,
 	 view_back } from 'lvgl.page';
 import { loader_init, page_load, pages_load } from 'lvgl.loader';
+import { ROTATION } from 'lvgl.theme';
 import { runtime_init, runtime_start, runtime_wake,
 	 settings } from 'lvgl.runtime';
 import { SOURCES, DEFAULTS, CHART_POINTS,
@@ -21,7 +22,9 @@ const SHOT_DIR = '/tmp';
 
 const TEST_PAGES = [ 'touch', 'fonts', 'colours' ];
 
-const BG_DIR = '/usr/share/glinet-panel-ui/backgrounds';
+/* Upright the same gradients come turned a quarter, so they cover 240x320. */
+const BG_DIR = sprintf('/usr/share/glinet-panel-ui/backgrounds%s',
+		      ROTATION == 90 || ROTATION == 270 ? '-portrait' : '');
 
 const BACKGROUNDS = [
 	'bg-1-vert-lines',
@@ -68,6 +71,9 @@ if (!lv.init())
 
 if (!lv.display_drm(getenv('PANEL_DRM_DEVICE') ?? '/dev/dri/card0', -1))
 	die('cannot open the DRM display');
+
+/* The theme read LVGL_ROTATION at import and laid out for it already. */
+lv.display_rotation(ROTATION);
 
 let touch_device = getenv('PANEL_TOUCH_DEVICE');
 

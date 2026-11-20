@@ -1,6 +1,6 @@
 'use strict';
 
-import { C_RULE, W, SEP_H, RULE_PAD } from 'lvgl.theme';
+import { C_RULE, W, H, SEP_H, RULE_PAD } from 'lvgl.theme';
 import { box_new, header_new } from 'lvgl.widget';
 import { body_new, cell_set } from 'lvgl.layout';
 import { gauge_new } from 'lvgl.component.gauge';
@@ -16,8 +16,12 @@ const DEGREE	= uchr(0xb0);
 let gauges = {};
 let state;
 
+/* Upright, a cell is 120 px wide: too narrow for a ring and a caption side by
+   side, so the caption goes under it. */
+const BELOW	= H > W;
+
 function gauge_at(grid, col, row, opts) {
-	return cell_set(gauge_new(grid, { ...opts,
+	return cell_set(gauge_new(grid, { ...opts, below: BELOW,
 					  side: col ? 'right' : 'left' }),
 			col, row);
 }
