@@ -79,7 +79,6 @@ function page_build(parent, ctx) {
 }
 
 return {
-	requires: 'dhcpsnoop',
 	needs: [ 'wireless', 'stations', 'clients' ],
 	build: page_build,
 	enter: page_update,
