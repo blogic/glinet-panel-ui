@@ -19,7 +19,6 @@ export const BAR_FILL_MIN = 46;
  * happen until it is satisfied, so it is the one page that spends the whole
  * 240 px on itself.
  */
-export const PIN_LEN	= 6;
 export const PIN_PAD	= 10;
 export const PIN_TOP	= 12;
 export const PIN_BOTTOM	= 8;

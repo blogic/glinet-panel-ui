@@ -4,11 +4,12 @@ import * as lv from 'lv';
 import * as uloop from 'uloop';
 import { C_TXT, C_TXT_DIM, C_SURFACE, C_RAISED, C_ALERT, C_RULE, W,
 	 H } from 'lvgl.theme';
-import { PIN_LEN, PIN_PAD, PIN_TOP, PIN_BOTTOM, PIN_DOT, PIN_DOT_GAP,
+import { PIN_PAD, PIN_TOP, PIN_BOTTOM, PIN_DOT, PIN_DOT_GAP,
 	 PIN_KEY_GAP } from '../lib/theme.uc';
 import { label_new, text_new, text_set, icon_new } from 'lvgl.widget';
 import { grid_new, cell_set, cells_at, span, centre } from 'lvgl.layout';
 import { FONT_REG_20, FONT_REG_13, IMAGE_BACKSPACE } from 'lvgl.assets';
+import { pin_valid } from 'lvgl.runtime';
 import { guard_new, guard_fail, guard_ok, guard_wait,
 	 guard_text } from '../lib/pin_guard.uc';
 
@@ -19,9 +20,6 @@ const DOT_Y	= PIN_TOP + lv.font_line_height(FONT_REG_13) + PROMPT_GAP;
 /* The border is drawn inside the radius, so half the size leaves the corners
    square on an even width. */
 const DOT_R	= int(PIN_DOT / 2) + 1;
-const DOT_AT	= cells_at(centre(W, span(PIN_DOT, PIN_LEN, PIN_DOT_GAP)),
-			   PIN_DOT, PIN_LEN, PIN_DOT_GAP);
-
 const PAD_Y	= DOT_Y + PIN_DOT + PAD_GAP;
 const PAD_H	= H - PIN_BOTTOM - PAD_Y;
 const KEY_RADIUS = 8;
@@ -31,10 +29,12 @@ const SHAKE_MS	= 43;
 
 const PROMPT	= 'Enter PIN';
 const REFUSED	= 'Incorrect PIN';
+const INVALID	= 'Invalid PIN in config';
 const COUNTDOWN_MS = 1000;
 
 let expected, unlock, activity, card_opa;
-let prompt, dots = [];
+let prompt, dots = [], dot_at = [];
+let pin_len = 0;	/* 0 for a PIN that cannot be typed */
 let entered = '';
 let shake_step, shake_timer;
 let guard = guard_new();
@@ -60,7 +60,7 @@ function guard_show() {
 
 	countdown.cancel();
 
-	if (prompt.last != PROMPT && prompt.last != REFUSED)
+	if (pin_len && prompt.last != PROMPT && prompt.last != REFUSED)
 		prompt_set(PROMPT, C_TXT);
 }
 
@@ -77,7 +77,7 @@ function dot_style(dot, state) {
 }
 
 function dots_refresh(state) {
-	for (let i = 0; i < PIN_LEN; i++)
+	for (let i = 0; i < pin_len; i++)
 		dot_style(dots[i], state ?? (i < length(entered) ? 'filled'
 								: 'empty'));
 }
@@ -92,8 +92,8 @@ function shake_step_run() {
 
 	let dx = SHAKE[shake_step++];
 
-	for (let i = 0; i < PIN_LEN; i++)
-		dots[i].set({ x: DOT_AT[i] + dx });
+	for (let i = 0; i < pin_len; i++)
+		dots[i].set({ x: dot_at[i] + dx });
 
 	shake_timer.set(SHAKE_MS);
 }
@@ -109,19 +109,19 @@ function refuse() {
 }
 
 function digit_add(digit) {
-	if (guard_wait(guard, clock_now()))
+	if (!pin_len || guard_wait(guard, clock_now()))
 		return;
 
 	if (prompt.last != PROMPT)
 		prompt_set(PROMPT, C_TXT);
 
-	if (length(entered) >= PIN_LEN)
+	if (length(entered) >= pin_len)
 		return;
 
 	entered += digit;
 	dots_refresh();
 
-	if (length(entered) < PIN_LEN)
+	if (length(entered) < pin_len)
 		return;
 
 	if (entered == expected) {
@@ -185,6 +185,9 @@ function page_build(parent, ctx) {
 		clock_now = ctx.now;
 
 	expected = ctx.pin;
+	pin_len = pin_valid(expected) ? length(expected) : 0;
+	dot_at = cells_at(centre(W, span(PIN_DOT, pin_len, PIN_DOT_GAP)),
+			  PIN_DOT, pin_len, PIN_DOT_GAP);
 	unlock = ctx.unlock;
 	activity = ctx.activity;
 	card_opa = ctx.card_opa;
@@ -194,10 +197,10 @@ function page_build(parent, ctx) {
 	prompt.obj.style({ text_align: lv.TEXT_ALIGN_CENTER });
 
 	/* Outside any layout: the shake rewrites their x every 43 ms. */
-	for (let i = 0; i < PIN_LEN; i++) {
+	for (let i = 0; i < pin_len; i++) {
 		let dot = lv.obj(parent);
 
-		dot.set({ x: DOT_AT[i], y: DOT_Y, w: PIN_DOT, h: PIN_DOT });
+		dot.set({ x: dot_at[i], y: DOT_Y, w: PIN_DOT, h: PIN_DOT });
 		dot.style({ bg_opa: lv.OPA_TRANSP, border_width: 1,
 			    border_color: C_RULE, radius: DOT_R, pad_all: 0 });
 		dot.clickable(false);
@@ -232,7 +235,12 @@ function page_build(parent, ctx) {
 
 function page_enter() {
 	entered = '';
-	prompt_set(PROMPT, C_TXT);
+
+	if (pin_len)
+		prompt_set(PROMPT, C_TXT);
+	else
+		prompt_set(INVALID, C_ALERT);
+
 	dots_refresh();
 	guard_show();
 }
@@ -250,6 +258,12 @@ return {
 	digit: digit_add,
 	refresh: guard_show,
 	status: function() {
-		return { prompt: prompt.last, entered: length(entered) };
+		return {
+			prompt: prompt.last,
+			entered: length(entered),
+			dots: length(dots),
+			dots_left: dot_at[0],
+			dots_right: pin_len ? dot_at[pin_len - 1] + PIN_DOT : 0
+		};
 	}
 };

@@ -20,6 +20,7 @@ import * as uloop from 'uloop';
 import { loader_init, page_load } from 'lvgl.loader';
 import { runtime_init } from 'lvgl.runtime';
 import { GUARD_FREE, GUARD_FIRST } from 'lib.pin_guard';
+import { W } from 'lvgl.theme';
 
 const RIGHT = '123456';
 const WRONG = '000000';
@@ -137,6 +138,71 @@ settle();
 check('after unlock: free failures again', prompt(), 'Incorrect PIN');
 
 page.leave();
+
+/* A fresh keypad for each configured PIN. */
+function keypad(pin) {
+	let screen = lv.screen_create();
+	let fresh = page_load('pin', null);
+
+	unlocks = 0;
+	lv.screen_load(screen);
+	fresh.build(screen, {
+		pin,
+		unlock: function() { unlocks++; },
+		activity: function() {},
+		card_opa: lv.OPA_COVER,
+		now: function() { return now; }
+	});
+	fresh.enter();
+	page = fresh;
+	lv.refresh();
+}
+
+for (let pin in [ '1234', '12345', '12345678' ]) {
+	let len = length(pin);
+
+	keypad(pin);
+	check(sprintf('%d digits: one dot each', len), page.status().dots, len);
+	check(sprintf('%d digits: dots on screen', len),
+	      page.status().dots_left >= 0 && page.status().dots_right <= W, true);
+	check(sprintf('%d digits: dots centred', len),
+	      page.status().dots_left - (W - page.status().dots_right) <= 1 &&
+	      (W - page.status().dots_right) - page.status().dots_left <= 1,
+	      true);
+
+	type_pin(substr(pin, 0, len - 1));
+	check(sprintf('%d digits: one short does nothing', len), unlocks, 0);
+	check(sprintf('%d digits: entered so far', len), page.status().entered,
+	      len - 1);
+
+	type_pin(substr(pin, len - 1));
+	check(sprintf('%d digits: the last digit unlocks', len), unlocks, 1);
+
+	keypad(pin);
+	type_pin(substr('00000000', 0, len));
+	settle();
+	check(sprintf('%d digits: wrong PIN refused', len), prompt(),
+	      'Incorrect PIN');
+	check(sprintf('%d digits: no unlock', len), unlocks, 0);
+	page.leave();
+}
+
+/* A PIN the runtime calls invalid can never be typed. */
+for (let pin in [ '123', '123456789', '12a4', [ '1234', '5678' ] ]) {
+	let name = sprintf('bad PIN %J', pin);
+
+	keypad(pin);
+	check(sprintf('%s: says so', name), prompt(), 'Invalid PIN in config');
+
+	type_pin('123');
+	type_pin('456789');
+	check(sprintf('%s: no digits taken', name), page.status().entered, 0);
+	check(sprintf('%s: never unlocks', name), unlocks, 0);
+	check(sprintf('%s: the prompt stays', name), prompt(),
+	      'Invalid PIN in config');
+	page.leave();
+}
+
 lv.refresh();
 
 printf('\n%s: %d of %d checks failed\n', failures ? 'FAIL' : 'PASS', failures,
