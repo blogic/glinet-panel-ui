@@ -4,7 +4,7 @@ import * as lv from 'lv';
 import * as uloop from 'uloop';
 import { cos } from 'math';
 import { IMAGE_LOGO } from './lib/assets.uc';
-import { W, H } from 'lvgl.theme';
+import { W, H, ROTATION } from 'lvgl.theme';
 import { centre } from 'lvgl.layout';
 
 /* White, not the panel's black: the splash stands in for firmware that has not
@@ -108,6 +108,8 @@ if (!lv.init())
 
 if (!lv.display_drm(getenv('PANEL_DRM_DEVICE') ?? '/dev/dri/card0', -1))
 	die('cannot open the DRM display');
+
+lv.display_rotation(ROTATION);
 
 build();
 
