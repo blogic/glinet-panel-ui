@@ -43,3 +43,20 @@ export function ssid_enable(net, on) {
 
 	return true;
 };
+
+/**
+ * networks_visible - the networks a page may show in the current mode
+ * @nets: state.networks
+ * @visible: ctx.visible, which answers for one "ssid" item; null shows all
+ *
+ * Public mode passes only the networks named "ssid:<name>" in the panel's
+ * public list, so their keys and QR codes stay off the screen otherwise.
+ *
+ * Return: the networks to show, in their order.
+ */
+export function networks_visible(nets, visible) {
+	if (!visible)
+		return nets ?? [];
+
+	return filter(nets ?? [], (net) => visible('ssid', net.ssid));
+};
